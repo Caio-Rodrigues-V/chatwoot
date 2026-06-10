@@ -50,7 +50,6 @@ RUN echo 'export PNPM_HOME="/root/.local/share/pnpm"' >> /root/.shrc \
   && export PATH="$PNPM_HOME:$PATH" \
   && pnpm --version
 
-# Persist the environment variables in Docker
 ENV PNPM_HOME="/root/.local/share/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 
@@ -143,4 +142,4 @@ EXPOSE 3000
 COPY docker/entrypoints/rails.sh /app/docker/entrypoints/rails.sh
 RUN chmod +x /app/docker/entrypoints/rails.sh
 
-CMD ["/app/docker/entrypoints/rails.sh"]
+CMD ["/app/docker/entrypoints/rails.sh", "bundle", "exec", "rails", "server", "-b", "0.0.0.0", "-p", "3000"]
