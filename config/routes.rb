@@ -285,6 +285,7 @@ Rails.application.routes.draw do
               get :download
             end
           end
+          
           resources :reporting_events, only: [:index] if ChatwootApp.enterprise?
 
           if ChatwootApp.enterprise?
@@ -317,6 +318,7 @@ Rails.application.routes.draw do
             post :register_webhook, on: :member
             post :reset_secret, on: :member
             post :on_whatsapp, on: :member
+            resources :messages, only: [:create], controller: 'inbox_messages'
             if ChatwootApp.enterprise?
               resource :conference, only: %i[create destroy], controller: 'conference' do
                 get :token, on: :member
