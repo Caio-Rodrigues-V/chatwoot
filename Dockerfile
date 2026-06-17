@@ -142,4 +142,4 @@ EXPOSE 3000
 COPY docker/entrypoints/rails.sh /app/docker/entrypoints/rails.sh
 RUN chmod +x /app/docker/entrypoints/rails.sh
 
-CMD ["/app/docker/entrypoints/rails.sh", "bundle", "exec", "rails", "server", "-b", "0.0.0.0", "-p", "3000"]
+CMD ["/app/docker/entrypoints/rails.sh", "bundle", "exec", "foreman", "start", "-f", "Procfile"]
