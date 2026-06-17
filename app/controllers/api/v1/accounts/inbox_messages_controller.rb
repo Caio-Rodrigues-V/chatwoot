@@ -4,14 +4,17 @@ class Api::V1::Accounts::InboxMessagesController < Api::V1::Accounts::BaseContro
   before_action :set_or_create_conversation
 
   def create
-    message = @conversation.messages.create!(
+    return head :ok if @incoming_message.blank?
+
+    @conversation.messages.create!(
       account_id: Current.account.id,
       inbox_id: @inbox.id,
       sender: @contact,
-      content: params[:content],
+      content: @incoming_message,
       message_type: :incoming
     )
-    render json: { id: message.id, content: message.content }, status: :created
+
+    head :ok
   end
 
   private
@@ -21,25 +24,29 @@ class Api::V1::Accounts::InboxMessagesController < Api::V1::Accounts::BaseContro
   end
 
   def set_or_create_contact_inbox
-    phone = params.dig(:contact, :phone_number) || params.dig(:sender, :phone) || params[:source_id]
-    name = params.dig(:contact, :name) || phone
+    payload = params[:payload] || {}
+    data    = payload.dig(:_data, :Info) || {}
+
+    sender_alt = data[:SenderAlt].presence || payload[:from].presence || ''
+    phone = sender_alt.split(':').first.split('@').first
+    phone = "+#{phone}" unless phone.start_with?('+')
+
+    name = data[:PushName].presence || phone
+    @incoming_message = payload[:body].presence
 
     @contact = Current.account.contacts.find_or_create_by!(phone_number: phone) do |c|
       c.name = name
       c.account_id = Current.account.id
     end
 
-    @inbox.contact_inboxes.find_or_create_by!(
-      contact: @contact,
-      source_id: phone
-    )
+    @inbox.contact_inboxes.find_or_create_by!(contact: @contact, source_id: phone)
   end
 
   def set_or_create_conversation
     @conversation = @inbox.conversations
-                         .where(contact_id: @contact.id)
-                         .where(status: [:open, :pending])
-                         .first
+                          .where(contact_id: @contact.id)
+                          .where(status: [:open, :pending])
+                          .first
 
     @conversation ||= Conversation.create!(
       account_id: Current.account.id,
