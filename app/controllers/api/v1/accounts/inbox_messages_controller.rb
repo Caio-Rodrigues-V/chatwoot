@@ -1,16 +1,47 @@
 class Api::V1::Accounts::InboxMessagesController < Api::V1::Accounts::BaseController
+  skip_before_action :authenticate_user!, raise: false
+  skip_before_action :authenticate_access_token!, raise: false
+  skip_before_action :check_subscription, raise: false
+
   before_action :set_inbox
-  before_action :set_or_create_contact_inbox
-  before_action :set_or_create_conversation
+  before_action :verify_message_event
 
   def create
-    return head :ok if @incoming_message.blank?
+    payload = params[:payload] || {}
+    data    = payload.dig(:_data, :Info) || {}
 
-    @conversation.messages.create!(
+    sender_alt = data[:SenderAlt].presence || payload[:from].presence || ''
+    phone = sender_alt.split(':').first.split('@').first
+    phone = "+#{phone}" unless phone.start_with?('+')
+
+    name = data[:PushName].presence || phone
+    content = payload[:body].presence
+
+    return head :ok if content.blank?
+
+    contact = Current.account.contacts.find_or_create_by!(phone_number: phone) do |c|
+      c.name = name
+      c.account_id = Current.account.id
+    end
+
+    @inbox.contact_inboxes.find_or_create_by!(contact: contact, source_id: phone)
+
+    conversation = @inbox.conversations
+                         .where(contact_id: contact.id)
+                         .where(status: [:open, :pending])
+                         .first
+
+    conversation ||= Conversation.create!(
+      account_id: Current.account.id,
+      contact_id: contact.id,
+      inbox_id: @inbox.id
+    )
+
+    conversation.messages.create!(
       account_id: Current.account.id,
       inbox_id: @inbox.id,
-      sender: @contact,
-      content: @incoming_message,
+      sender: contact,
+      content: content,
       message_type: :incoming
     )
 
@@ -20,38 +51,11 @@ class Api::V1::Accounts::InboxMessagesController < Api::V1::Accounts::BaseContro
   private
 
   def set_inbox
-    @inbox = Current.account.inboxes.find(params[:inbox_id])
+    account = Account.find(params[:account_id])
+    @inbox = account.inboxes.find(params[:inbox_id])
   end
 
-  def set_or_create_contact_inbox
-    payload = params[:payload] || {}
-    data    = payload.dig(:_data, :Info) || {}
-
-    sender_alt = data[:SenderAlt].presence || payload[:from].presence || ''
-    phone = sender_alt.split(':').first.split('@').first
-    phone = "+#{phone}" unless phone.start_with?('+')
-
-    name = data[:PushName].presence || phone
-    @incoming_message = payload[:body].presence
-
-    @contact = Current.account.contacts.find_or_create_by!(phone_number: phone) do |c|
-      c.name = name
-      c.account_id = Current.account.id
-    end
-
-    @inbox.contact_inboxes.find_or_create_by!(contact: @contact, source_id: phone)
-  end
-
-  def set_or_create_conversation
-    @conversation = @inbox.conversations
-                          .where(contact_id: @contact.id)
-                          .where(status: [:open, :pending])
-                          .first
-
-    @conversation ||= Conversation.create!(
-      account_id: Current.account.id,
-      contact_id: @contact.id,
-      inbox_id: @inbox.id
-    )
+  def verify_message_event
+    head :ok unless params[:event] == 'message' && params.dig(:payload, :fromMe) == false
   end
 end
