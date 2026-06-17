@@ -21,17 +21,19 @@ class Api::V1::Accounts::InboxMessagesController < Api::V1::Accounts::BaseContro
     account = Account.find(params[:account_id])
     inbox   = account.inboxes.find(params[:inbox_id])
 
-    contact = account.contacts.find_or_create_by!(phone_number: phone) do |c|
-      c.name = name
-      c.account_id = account.id
-    end
+    contact = account.contacts.where(phone_number: phone).first
+    contact ||= account.contacts.create!(
+      name: name,
+      phone_number: phone,
+      account_id: account.id
+    )
 
-    contact_inbox = ContactInbox.find_or_create_by!(
+    contact_inbox = ContactInbox.where(inbox: inbox, contact: contact).first
+    contact_inbox ||= ContactInbox.create!(
       inbox: inbox,
-      contact: contact
-    ) do |ci|
-      ci.source_id = phone
-    end
+      contact: contact,
+      source_id: SecureRandom.uuid
+    )
 
     conversation = inbox.conversations
                         .where(contact_id: contact.id)
