@@ -32,7 +32,7 @@ class Api::V1::Accounts::InboxMessagesController < Api::V1::Accounts::BaseContro
     contact_inbox ||= ContactInbox.create!(
       inbox: inbox,
       contact: contact,
-      source_id: SecureRandom.uuid
+      source_id: "#{phone.delete('+')}@c.us"
     )
 
     conversation = inbox.conversations
