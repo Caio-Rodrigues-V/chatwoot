@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chatwoot × DDM — Design Preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --ddm-orange:#FF5706;
+  --ddm-orange-600:#E84B00;
+  --ddm-orange-700:#C23E00;
+  --ddm-orange-300:#FF8754;
+  --ddm-orange-100:#FFE0D1;
+  --ddm-orange-50:#FFF3EC;
+  --ddm-ink:#1F1F1F;
+  --ddm-ink-2:#3D3D3D;
+  --ddm-gray:#939598;
+  --ddm-gray-2:#BFBFC1;
+  --ddm-gray-3:#E5E5E7;
+  --ddm-gray-4:#F4F4F6;
+  --ddm-cream:#FAF7F4;
+  --ddm-success:#2BAE66;
+  --ddm-warning:#E8A100;
+  --ddm-danger:#D8362F;
+  --ddm-info:#1F7AE0;
+  --font-display:'Poppins',-apple-system,system-ui,sans-serif;
+  --font-body:'Inter',-apple-system,system-ui,sans-serif;
+}
+
+body{
+  font-family:var(--font-body);
+  background:#0C0C0E;
+  color:#fff;
+  padding:36px 20px 48px;
+  min-height:100vh;
+}
+
+/* ── PAGE HEADER ── */
+.page-header{text-align:center;margin-bottom:32px}
+.page-header h1{
+  font-family:var(--font-display);
+  font-size:18px;font-weight:600;
+  color:#fff;margin-bottom:5px;
+  letter-spacing:-0.01em;
+}
+.page-header p{font-size:12px;color:#606068}
+
+/* ── TWO-PANEL GRID ── */
+.panels{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:20px;
+  max-width:1200px;
+  margin:0 auto 40px;
+}
+
+.panel-wrap{display:flex;flex-direction:column;gap:8px}
+.panel-label{
+  font-size:10px;font-weight:500;
+  letter-spacing:.08em;text-transform:uppercase;
+  color:#606068;padding-left:2px;
+}
+
+/* ── APP FRAME ── */
+.app{
+  display:flex;height:560px;
+  border-radius:10px;overflow:hidden;
+  box-shadow:0 20px 60px rgba(0,0,0,.55);
+}
+
+/* ── SIDEBAR ── */
+.sb{
+  width:196px;flex-shrink:0;
+  display:flex;flex-direction:column;
+}
+.sb-top{padding:10px 8px 8px;display:flex;flex-direction:column;gap:7px}
+.sb-brand{display:flex;align-items:center;gap:7px;padding:0 4px}
+.sb-logo{height:18px;width:auto;display:block}
+.sb-logo-fallback{
+  font-family:var(--font-display);font-size:13px;font-weight:700;
+  color:var(--ddm-orange);display:none;
+}
+.sb-vr{width:1px;height:11px;flex-shrink:0}
+.sb-account{
+  display:flex;align-items:center;gap:5px;
+  font-size:11px;font-weight:500;
+  padding:2px 4px;border-radius:5px;
+}
+.sb-account-dot{
+  width:15px;height:15px;border-radius:3px;
+  background:var(--ddm-orange);
+  display:flex;align-items:center;justify-content:center;
+  font-size:8px;font-weight:700;color:#fff;flex-shrink:0;
+}
+.sb-search{
+  margin:0 4px;padding:5px 8px;
+  border-radius:7px;border:1px solid;
+  font-size:11px;display:flex;align-items:center;gap:5px;
+}
+.sb-nav{flex:1;overflow:hidden;padding:0 8px;display:flex;flex-direction:column;gap:1px}
+.nav-item{
+  display:flex;align-items:center;gap:7px;
+  padding:5px 8px;border-radius:7px;
+  font-size:12px;font-weight:500;
+  font-family:var(--font-body);
+  position:relative;cursor:default;
+  transition:background .12s;
+}
+.nav-icon{width:15px;height:15px;flex-shrink:0;opacity:.65;
+  fill:none;stroke:currentColor;stroke-width:1.5;
+  stroke-linecap:round;stroke-linejoin:round}
+.nav-item.active .nav-icon{opacity:1}
+.nav-badge{
+  margin-left:auto;font-size:10px;font-weight:600;
+  padding:1px 5px;border-radius:4px;
+  font-variant-numeric:tabular-nums;
+}
+.nav-ping{
+  position:absolute;top:3px;left:19px;
+  width:6px;height:6px;border-radius:50%;
+  background:var(--ddm-orange);
+}
+.sb-footer{
+  padding:7px 8px;border-top:1px solid;
+  display:flex;align-items:center;gap:7px;
+}
+.avatar{
+  width:26px;height:26px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:600;flex-shrink:0;
+}
+.footer-name{
+  font-size:11px;font-weight:500;
+  flex:1;min-width:0;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap;
+}
+.dots-icon{width:14px;height:14px;flex-shrink:0;opacity:.45}
+
+/* ── MAIN AREA ── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.main-hdr{
+  padding:9px 14px;border-bottom:1px solid;
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
+}
+.main-title{font-family:var(--font-display);font-size:13px;font-weight:600}
+.hdr-actions{display:flex;gap:6px;align-items:center}
+.btn{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:4px 10px;border-radius:7px;
+  font-size:11px;font-weight:600;
+  font-family:var(--font-display);border:none;cursor:default;
+}
+.btn-primary{background:var(--ddm-orange);color:#fff}
+.badge{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:2px 7px;border-radius:999px;
+  font-size:10px;font-weight:600;
+}
+.bdot{width:5px;height:5px;border-radius:50%}
+
+.filters{
+  padding:7px 14px;border-bottom:1px solid;
+  display:flex;gap:5px;flex-shrink:0;
+}
+.chip{
+  padding:2px 9px;border-radius:999px;
+  font-size:10px;font-weight:500;cursor:default;
+}
+
+.conv-list{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.conv{
+  display:flex;align-items:flex-start;gap:9px;
+  padding:9px 14px;border-bottom:1px solid;
+  flex-shrink:0;
+}
+.conv-av{
+  width:22px;height:22px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:9px;font-weight:600;margin-top:1px;flex-shrink:0;
+}
+.conv-body{flex:1;min-width:0}
+.conv-row{
+  display:flex;align-items:center;justify-content:space-between;margin-bottom:1px;
+}
+.conv-name{font-size:11px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.conv-time{font-size:9px;flex-shrink:0;font-variant-numeric:tabular-nums}
+.conv-text{font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:3px}
+.conv-tags{display:flex;gap:3px}
+.tag{padding:1px 5px;border-radius:3px;font-size:9px;font-weight:500}
+.unread{width:6px;height:6px;border-radius:50%;background:var(--ddm-orange);flex-shrink:0;margin-top:4px}
+.spacer-dot{width:6px;flex-shrink:0}
+
+/* ── LIGHT THEME ── */
+.light .sb{background:#fff;border-right:1px solid var(--ddm-gray-3)}
+.light .sb-vr{background:var(--ddm-gray-3)}
+.light .sb-account{color:var(--ddm-ink-2)}
+.light .sb-search{background:var(--ddm-gray-4);border-color:var(--ddm-gray-3);color:var(--ddm-gray)}
+.light .nav-item{color:var(--ddm-gray)}
+.light .nav-item.active{background:var(--ddm-orange-50);color:var(--ddm-orange-700)}
+.light .nav-item.has-active{color:var(--ddm-ink);font-weight:600}
+.light .nav-badge{background:var(--ddm-gray-4);color:var(--ddm-gray)}
+.light .nav-badge.ob{background:var(--ddm-orange-100);color:var(--ddm-orange-700);outline:1px solid #FFBFA0}
+.light .sb-footer{border-color:var(--ddm-gray-3)}
+.light .footer-name{color:var(--ddm-ink-2)}
+.light .avatar{background:var(--ddm-orange-100);color:var(--ddm-orange-700)}
+.light .main{background:var(--ddm-gray-4)}
+.light .main-hdr{background:#fff;border-color:var(--ddm-gray-3)}
+.light .main-title{color:var(--ddm-ink)}
+.light .filters{background:#fff;border-color:var(--ddm-gray-3)}
+.light .chip{background:var(--ddm-gray-4);color:var(--ddm-gray)}
+.light .chip.active{background:var(--ddm-orange);color:#fff}
+.light .conv{background:#fff;border-color:var(--ddm-gray-3)}
+.light .conv.sel{background:var(--ddm-orange-50);border-color:#FFD4BE}
+.light .conv-name{color:var(--ddm-ink)}
+.light .conv-time{color:var(--ddm-gray)}
+.light .conv-text{color:var(--ddm-gray)}
+.light .conv-text.unread-text{color:var(--ddm-ink-2);font-weight:500}
+.light .badge-or{background:rgba(255,87,6,.1);color:var(--ddm-orange-700)}
+.light .dots-icon{color:var(--ddm-gray)}
+
+/* ── DARK THEME ── */
+.dark .sb{background:#18181A;border-right:1px solid #252528}
+.dark .sb-vr{background:#36363A}
+.dark .sb-account{color:#BFBFC1}
+.dark .sb-search{background:#222224;border-color:#2E2E32;color:#606068}
+.dark .nav-item{color:#606068}
+.dark .nav-item.active{background:rgba(90,38,0,.9);color:#FF8754}
+.dark .nav-item.has-active{color:#D8D8DA;font-weight:600}
+.dark .nav-badge{background:#252528;color:#606068}
+.dark .nav-badge.ob{background:rgba(90,38,0,.6);color:#FF8754;outline:1px solid rgba(255,135,84,.25)}
+.dark .sb-footer{border-color:#252528}
+.dark .footer-name{color:#BFBFC1}
+.dark .avatar{background:#5A2600;color:#FF8754}
+.dark .main{background:#111113}
+.dark .main-hdr{background:#18181A;border-color:#252528}
+.dark .main-title{color:#D8D8DA}
+.dark .filters{background:#18181A;border-color:#252528}
+.dark .chip{background:#222224;color:#606068}
+.dark .chip.active{background:var(--ddm-orange);color:#fff}
+.dark .conv{background:#18181A;border-color:#252528}
+.dark .conv.sel{background:rgba(36,16,6,.95);border-color:#3A1E0A}
+.dark .conv-name{color:#D8D8DA}
+.dark .conv-time{color:#606068}
+.dark .conv-text{color:#606068}
+.dark .conv-text.unread-text{color:#BFBFC1;font-weight:500}
+.dark .badge-or{background:rgba(255,87,6,.15);color:#FF8754}
+.dark .dots-icon{color:#606068}
+
+/* ── SEMANTIC (shared) ── */
+.badge-s{background:rgba(43,174,102,.12);color:#2BAE66}
+.badge-w{background:rgba(232,161,0,.12);color:#D4920A}
+.badge-d{background:rgba(216,54,47,.12);color:#D8362F}
+.badge-i{background:rgba(31,122,224,.12);color:#1F7AE0}
+.tag-s{background:rgba(43,174,102,.13);color:#1E9E57}
+.tag-w{background:rgba(232,161,0,.13);color:#A06600}
+.tag-i{background:rgba(31,122,224,.13);color:#1F7AE0}
+.tag-g{background:rgba(147,149,152,.13);color:#7A7C80}
+.tag-d{background:rgba(216,54,47,.13);color:#C22B24}
+.dark .tag-s{background:rgba(43,174,102,.15);color:#2BAE66}
+.dark .tag-w{background:rgba(232,161,0,.15);color:#E8A100}
+.dark .tag-i{background:rgba(31,122,224,.15);color:#6AAEFF}
+.dark .tag-g{background:rgba(147,149,152,.15);color:#939598}
+.dark .tag-d{background:rgba(216,54,47,.15);color:#E05650}
+
+/* ── BOTTOM SECTIONS ── */
+.bottom{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.section-hdr{font-size:10px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:#606068;margin-bottom:12px}
+.swatch-row{display:flex;gap:6px;flex-wrap:wrap}
+.swatch{display:flex;flex-direction:column;align-items:center;gap:5px}
+.swatch-block{width:44px;height:44px;border-radius:8px}
+.swatch-lbl{font-size:9px;color:#606068;text-align:center;font-variant-numeric:tabular-nums;line-height:1.4}
+
+.typo-box{background:#18181A;border-radius:10px;padding:20px 22px;display:flex;flex-direction:column;gap:16px}
+.typo-row{display:flex;flex-direction:column;gap:3px}
+.typo-eyebrow{font-size:9px;font-weight:500;letter-spacing:.09em;text-transform:uppercase;color:#606068}
+
+.divider{width:1px;background:#252528;margin:0 2px;align-self:stretch;flex-shrink:0}
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>Chatwoot × Grupo DDM</h1>
+  <p>Preview do Design System aplicado — variáveis CSS reais do projeto</p>
+</div>
+
+<div class="panels">
+
+  <!-- ═══════════════ LIGHT ═══════════════ -->
+  <div class="panel-wrap">
+    <p class="panel-label">Light</p>
+    <div class="app light">
+
+      <aside class="sb">
+        <div class="sb-top">
+          <div class="sb-brand">
+            <img src="./public/images/logo-ddm.png" class="sb-logo" alt="DDM"
+              onerror="this.style.display='none';document.querySelectorAll('.sb-logo-fallback')[0].style.display='block'">
+            <span class="sb-logo-fallback">DDM</span>
+          </div>
+          <div class="sb-search">
+            <svg viewBox="0 0 24 24" style="width:12px;height:12px;fill:none;stroke:#939598;stroke-width:2;stroke-linecap:round"><circle cx="11" cy="11" r="7"/><path d="m21 21-3.5-3.5"/></svg>
+            <span>Buscar...</span>
+          </div>
+        </div>
+
+        <nav class="sb-nav">
+          <div class="nav-item active">
+            <svg class="nav-icon" viewBox="0 0 24 24"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+            Inbox
+            <span class="nav-badge ob">12</span>
+            <span class="nav-ping"></span>
+          </div>
+          <div class="nav-item has-active">
+            <svg class="nav-icon" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            Conversas
+          </div>
+          <div class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z"/><path d="M12 16v-4M12 8h.01"/></svg>
+            Captain
+          </div>
+          <div class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            Contatos
+          </div>
+          <div class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            Relatórios
+          </div>
+          <div class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>
+            Campanhas
+          </div>
+          <div class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+            Help Center
+          </div>
+          <div class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93A10 10 0 0 1 21 12M4.93 4.93A10 10 0 0 0 3 12M12 3v2M12 19v2M3 12H1M21 12h2"/></svg>
+            Configurações
+          </div>
+        </nav>
+
+        <div class="sb-footer">
+          <div class="avatar">JM</div>
+          <span class="footer-name">João Mendes</span>
+          <svg class="dots-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>
+        </div>
+      </aside>
+
+      <main class="main">
+        <div class="main-hdr">
+          <span class="main-title">Inbox</span>
+          <div class="hdr-actions">
+            <span class="badge badge-or"><span class="bdot" style="background:var(--ddm-orange)"></span>12 abertas</span>
+            <button class="btn btn-primary">
+              <svg style="width:11px;height:11px;fill:none;stroke:#fff;stroke-width:2.5;stroke-linecap:round" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Nova conversa
+            </button>
+          </div>
+        </div>
+
+        <div class="filters">
+          <span class="chip active">Todas</span>
+          <span class="chip">Minhas</span>
+          <span class="chip">Sem atribuição</span>
+          <span class="chip">Resolvidas</span>
+        </div>
+
+        <div class="conv-list">
+          <div class="conv sel">
+            <div class="unread"></div>
+            <div class="conv-av" style="background:#FFE0D1;color:#C23E00">AM</div>
+            <div class="conv-body">
+              <div class="conv-row">
+                <span class="conv-name">Ana Martins</span>
+                <span class="conv-time">14:32</span>
+              </div>
+              <div class="conv-text unread-text">Preciso de ajuda com o pedido #4821</div>
+              <div class="conv-tags">
+                <span class="tag tag-w">Urgente</span>
+                <span class="tag tag-i">WhatsApp</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="conv">
+            <div class="spacer-dot"></div>
+            <div class="conv-av" style="background:#E8E8E8;color:#60646C">RC</div>
+            <div class="conv-body">
+              <div class="conv-row">
+                <span class="conv-name">Roberto Campos</span>
+                <span class="conv-time">13:18</span>
+              </div>
+              <div class="conv-text">Obrigado! O problema foi resolvido.</div>
+              <div class="conv-tags">
+                <span class="tag tag-s">Resolvida</span>
+                <span class="tag tag-g">E-mail</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="conv">
+            <div class="unread"></div>
+            <div class="conv-av" style="background:#CCF3EA;color:#008573">FS</div>
+            <div class="conv-body">
+              <div class="conv-row">
+                <span class="conv-name">Fernanda Silva</span>
+                <span class="conv-time">11:05</span>
+              </div>
+              <div class="conv-text unread-text">Quando chega minha encomenda?</div>
+              <div class="conv-tags">
+                <span class="tag tag-i">Instagram</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="conv">
+            <div class="spacer-dot"></div>
+            <div class="conv-av" style="background:#E1E9FF;color:#3A5BC7">LP</div>
+            <div class="conv-body">
+              <div class="conv-row">
+                <span class="conv-name">Lucas Pereira</span>
+                <span class="conv-time">Ontem</span>
+              </div>
+              <div class="conv-text">Gostaria de saber mais sobre os planos</div>
+              <div class="conv-tags">
+                <span class="badge badge-w" style="font-size:9px;padding:1px 6px"><span class="bdot" style="background:#E8A100"></span>Em espera</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="conv">
+            <div class="unread"></div>
+            <div class="conv-av" style="background:#FBDCEF;color:#C2298A">MG</div>
+            <div class="conv-body">
+              <div class="conv-row">
+                <span class="conv-name">Mariana Gomes</span>
+                <span class="conv-time">Ontem</span>
+              </div>
+              <div class="conv-text unread-text">Produto com defeito, preciso trocar</div>
+              <div class="conv-tags">
+                <span class="tag tag-d">Reclamação</span>
+                <span class="tag tag-w">Urgente</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="conv">
+            <div class="spacer-dot"></div>
+            <div class="conv-av" style="background:#FFE0BB;color:#99543A">TN</div>
+            <div class="conv-body">
+              <div class="conv-row">
+                <span class="conv-name">Thiago Neves</span>
+                <span class="conv-time">Seg</span>
+              </div>
+              <div class="conv-text">Atendimento excelente, parabéns!</div>
+              <div class="conv-tags">
+                <span class="tag tag-s">Resolvida</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- ═══════════════ DARK ═══════════════ -->
+  <div class="panel-wrap">
+    <p class="panel-label">Dark</p>
+    <div class="app dark">
+
+      <aside class="sb">
+        <div class="sb-top">
+          <div class="sb-brand">
+            <img src="./public/images/logo-ddm-white.png" class="sb-logo" alt="DDM"
+              onerror="this.style.display='none';document.querySelectorAll('.sb-logo-fallback')[1].style.display='block'">
+            <span class="sb-logo-fallback">DDM</span>
+          </div>
+          <div class="sb-search">
+            <svg viewBox="0 0 24 24" style="width:12px;height:12px;fill:none;stroke:#606068;stroke-width:2;stroke-linecap:round"><circle cx="11" cy="11" r="7"/><path d="m21 21-3.5-3.5"/></svg>
+            <span>Buscar...</span>
+          </div>
+        </div>
+
+        <nav class="sb-nav">
+          <div class="nav-item active">
+            <svg class="nav-icon" viewBox="0 0 24 24"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+            Inbox
+            <span class="nav-badge ob">12</span>
+            <span class="nav-ping"></span>
+          </div>
+          <div class="nav-item has-active">
+            <svg class="nav-icon" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            Conversas
+          </div>
+          <div class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z"/><path d="M12 16v-4M12 8h.01"/></svg>
+            Captain
+          </div>
+          <div class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            Contatos
+          </div>
+          <div class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            Relatórios
+          </div>
+          <div class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>
+            Campanhas
+          </div>
+          <div class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+            Help Center
+          </div>
+          <div class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93A10 10 0 0 1 21 12M4.93 4.93A10 10 0 0 0 3 12M12 3v2M12 19v2M3 12H1M21 12h2"/></svg>
+            Configurações
+          </div>
+        </nav>
+
+        <div class="sb-footer">
+          <div class="avatar">JM</div>
+          <span class="footer-name">João Mendes</span>
+          <svg class="dots-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>
+        </div>
+      </aside>
+
+      <main class="main">
+        <div class="main-hdr">
+          <span class="main-title">Inbox</span>
+          <div class="hdr-actions">
+            <span class="badge badge-or"><span class="bdot" style="background:var(--ddm-orange)"></span>12 abertas</span>
+            <button class="btn btn-primary">
+              <svg style="width:11px;height:11px;fill:none;stroke:#fff;stroke-width:2.5;stroke-linecap:round" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Nova conversa
+            </button>
+          </div>
+        </div>
+
+        <div class="filters">
+          <span class="chip active">Todas</span>
+          <span class="chip">Minhas</span>
+          <span class="chip">Sem atribuição</span>
+          <span class="chip">Resolvidas</span>
+        </div>
+
+        <div class="conv-list">
+          <div class="conv sel">
+            <div class="unread"></div>
+            <div class="conv-av" style="background:#5A2600;color:#FF8754">AM</div>
+            <div class="conv-body">
+              <div class="conv-row">
+                <span class="conv-name">Ana Martins</span>
+                <span class="conv-time">14:32</span>
+              </div>
+              <div class="conv-text unread-text">Preciso de ajuda com o pedido #4821</div>
+              <div class="conv-tags">
+                <span class="tag tag-w">Urgente</span>
+                <span class="tag tag-i">WhatsApp</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="conv">
+            <div class="spacer-dot"></div>
+            <div class="conv-av" style="background:#2A2A2E;color:#939598">RC</div>
+            <div class="conv-body">
+              <div class="conv-row">
+                <span class="conv-name">Roberto Campos</span>
+                <span class="conv-time">13:18</span>
+              </div>
+              <div class="conv-text">Obrigado! O problema foi resolvido.</div>
+              <div class="conv-tags">
+                <span class="tag tag-s">Resolvida</span>
+                <span class="tag tag-g">E-mail</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="conv">
+            <div class="unread"></div>
+            <div class="conv-av" style="background:#023B37;color:#0BD8B6">FS</div>
+            <div class="conv-body">
+              <div class="conv-row">
+                <span class="conv-name">Fernanda Silva</span>
+                <span class="conv-time">11:05</span>
+              </div>
+              <div class="conv-text unread-text">Quando chega minha encomenda?</div>
+              <div class="conv-tags">
+                <span class="tag tag-i">Instagram</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="conv">
+            <div class="spacer-dot"></div>
+            <div class="conv-av" style="background:#1D2E62;color:#9EB1FF">LP</div>
+            <div class="conv-body">
+              <div class="conv-row">
+                <span class="conv-name">Lucas Pereira</span>
+                <span class="conv-time">Ontem</span>
+              </div>
+              <div class="conv-text">Gostaria de saber mais sobre os planos</div>
+              <div class="conv-tags">
+                <span class="badge badge-w" style="font-size:9px;padding:1px 6px"><span class="bdot" style="background:#E8A100"></span>Em espera</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="conv">
+            <div class="unread"></div>
+            <div class="conv-av" style="background:#4B143D;color:#FF8DCC">MG</div>
+            <div class="conv-body">
+              <div class="conv-row">
+                <span class="conv-name">Mariana Gomes</span>
+                <span class="conv-time">Ontem</span>
+              </div>
+              <div class="conv-text unread-text">Produto com defeito, preciso trocar</div>
+              <div class="conv-tags">
+                <span class="tag tag-d">Reclamação</span>
+                <span class="tag tag-w">Urgente</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="conv">
+            <div class="spacer-dot"></div>
+            <div class="conv-av" style="background:#3F220D;color:#FFA366">TN</div>
+            <div class="conv-body">
+              <div class="conv-row">
+                <span class="conv-name">Thiago Neves</span>
+                <span class="conv-time">Seg</span>
+              </div>
+              <div class="conv-text">Atendimento excelente, parabéns!</div>
+              <div class="conv-tags">
+                <span class="tag tag-s">Resolvida</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ BOTTOM: PALETTE + TYPOGRAPHY ═══ -->
+<div class="bottom">
+
+  <!-- Palette -->
+  <div>
+    <p class="section-hdr">Paleta — tokens CSS aplicados</p>
+    <div class="swatch-row">
+      <div class="swatch">
+        <div class="swatch-block" style="background:#FF5706"></div>
+        <div class="swatch-lbl">--iris-9<br>#FF5706</div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-block" style="background:#E84B00"></div>
+        <div class="swatch-lbl">--iris-10<br>#E84B00</div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-block" style="background:#C23E00"></div>
+        <div class="swatch-lbl">--iris-11<br>#C23E00</div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-block" style="background:#FF8754"></div>
+        <div class="swatch-lbl">--iris-8<br>#FF8754</div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-block" style="background:#FFE0D1;outline:1px solid #ddd"></div>
+        <div class="swatch-lbl">--iris-4<br>#FFE0D1</div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-block" style="background:#FFF3EC;outline:1px solid #ddd"></div>
+        <div class="swatch-lbl">--iris-3<br>#FFF3EC</div>
+      </div>
+      <div class="divider" style="height:auto;margin:0 3px"></div>
+      <div class="swatch">
+        <div class="swatch-block" style="background:#2BAE66"></div>
+        <div class="swatch-lbl">success<br>#2BAE66</div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-block" style="background:#E8A100"></div>
+        <div class="swatch-lbl">warning<br>#E8A100</div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-block" style="background:#D8362F"></div>
+        <div class="swatch-lbl">danger<br>#D8362F</div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-block" style="background:#1F7AE0"></div>
+        <div class="swatch-lbl">info<br>#1F7AE0</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Typography -->
+  <div>
+    <p class="section-hdr">Tipografia</p>
+    <div class="typo-box">
+      <div class="typo-row">
+        <span class="typo-eyebrow">Poppins 700 — título</span>
+        <span style="font-family:var(--font-display);font-size:22px;font-weight:700;color:#fff;letter-spacing:-.02em;text-wrap:balance">Atendimento que converte</span>
+      </div>
+      <div class="typo-row">
+        <span class="typo-eyebrow">Poppins 600 — heading</span>
+        <span style="font-family:var(--font-display);font-size:15px;font-weight:600;color:#D8D8DA">Inbox · 12 conversas abertas</span>
+      </div>
+      <div class="typo-row">
+        <span class="typo-eyebrow">Inter 400 — corpo</span>
+        <span style="font-family:var(--font-body);font-size:12px;color:#BFBFC1;line-height:1.6">Preciso de ajuda com o pedido #4821. Fiz a compra há três dias e não recebi confirmação de envio.</span>
+      </div>
+      <div class="typo-row">
+        <span class="typo-eyebrow">Inter 500 — badges</span>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:3px">
+          <span class="badge badge-s"><span class="bdot" style="background:#2BAE66"></span>Resolvida</span>
+          <span class="badge badge-w"><span class="bdot" style="background:#E8A100"></span>Em espera</span>
+          <span class="badge badge-d"><span class="bdot" style="background:#D8362F"></span>Reclamação</span>
+          <span class="badge badge-i"><span class="bdot" style="background:#1F7AE0"></span>WhatsApp</span>
+          <span class="badge" style="background:rgba(255,87,6,.15);color:#FF8754"><span class="bdot" style="background:#FF5706"></span>12 não lidas</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div style="text-align:center;margin-top:32px;font-size:10px;color:#363638;font-family:var(--font-body)">
+  Grupo DDM × Chatwoot — Design Preview · 2026-06-25
+</div>
+
+</body>
+</html>

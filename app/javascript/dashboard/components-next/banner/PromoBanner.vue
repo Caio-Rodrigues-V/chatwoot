@@ -47,10 +47,10 @@ const emit = defineEmits(['ctaClick']);
 const variantClasses = computed(() => {
   const variants = {
     info: {
-      container: 'bg-woot-50 border-woot-200',
-      icon: 'i-lucide-info text-woot-600',
-      text: 'text-woot-700',
-      description: 'text-woot-600',
+      container: 'bg-ddm-orange-50 border-ddm-orange-100',
+      icon: 'i-lucide-info text-ddm-orange-600',
+      text: 'text-ddm-orange-700',
+      description: 'text-ddm-orange-600',
     },
     success: {
       container: 'bg-green-50 border-green-200',
