@@ -19,7 +19,6 @@ import SidebarChangelogCard from './SidebarChangelogCard.vue';
 import YearInReviewBanner from '../year-in-review/YearInReviewBanner.vue';
 import ChannelLeaf from './ChannelLeaf.vue';
 import SidebarAccountSwitcher from './SidebarAccountSwitcher.vue';
-import Logo from 'next/icon/Logo.vue';
 import ComposeConversation from 'dashboard/components-next/NewConversation/ComposeConversation.vue';
 
 const props = defineProps({
@@ -630,14 +629,18 @@ const menuItems = computed(() => {
   >
     <section class="grid gap-2 mt-2 mb-4">
       <div class="flex gap-2 items-center px-2 min-w-0">
-        <div class="grid flex-shrink-0 place-content-center size-6">
-          <Logo class="size-4" />
+        <div class="flex-shrink-0 flex items-center">
+          <img
+            src="/images/logo-ddm.png"
+            alt="Grupo DDM"
+            class="h-5 w-auto dark:hidden"
+          />
+          <img
+            src="/images/logo-ddm-white.png"
+            alt="Grupo DDM"
+            class="h-5 w-auto hidden dark:block"
+          />
         </div>
-        <div class="flex-shrink-0 w-px h-3 bg-n-strong" />
-        <SidebarAccountSwitcher
-          class="flex-grow -mx-1 min-w-0"
-          @show-create-account-modal="emit('showCreateAccountModal')"
-        />
       </div>
       <div class="flex gap-2 px-2">
         <RouterLink
