@@ -226,7 +226,7 @@ export const colors = {
     },
 
     black: '#000000',
-    brand: '#2781F6',
+    brand: '#FF5706',
     background: 'rgb(var(--background-color) / <alpha-value>)',
     'input-background': 'rgba(var(--background-input-box))',
     surface: {
@@ -262,7 +262,7 @@ export const colors = {
     'blue-strong': 'rgb(var(--border-blue-strong) / <alpha-value>)',
     'blue-border': 'rgba(var(--border-blue))',
     // Text colors
-    'blue-text': 'rgb(var(--text-blue) / <alpha-value>)',
+    'blue-text': 'rgb(var(--iris-11))',
     'purple-text': 'rgb(var(--text-purple) / <alpha-value>)',
     'amber-text': 'rgb(var(--text-amber) / <alpha-value>)',
     card: 'rgb(var(--card-color) / <alpha-value>)',
