@@ -1,5 +1,7 @@
 <script setup>
 import { h, ref, computed, onMounted } from 'vue';
+import logoDDM from '@/assets/images/logo-ddm.png';
+import logoDDMWhite from '@/assets/images/logo-ddm-white.png';
 import { provideSidebarContext, useSidebarResize } from './provider';
 import { useAccount } from 'dashboard/composables/useAccount';
 import { useKbd } from 'dashboard/composables/utils/useKbd';
@@ -804,12 +806,12 @@ const menuItems = computed(() => {
         <template v-else>
           <div class="flex-shrink-0 flex items-center">
             <img
-              src="/logo-ddm.png"
+              :src="logoDDM"
               alt="Grupo DDM"
               class="h-5 w-auto dark:hidden"
             />
             <img
-              src="/logo-ddm-white.png"
+              :src="logoDDMWhite"
               alt="Grupo DDM"
               class="h-5 w-auto hidden dark:block"
             />
@@ -925,3 +927,4 @@ const menuItems = computed(() => {
     </div>
   </aside>
 </template>
+
