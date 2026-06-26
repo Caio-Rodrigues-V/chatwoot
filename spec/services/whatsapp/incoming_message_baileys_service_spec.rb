@@ -18,7 +18,7 @@ describe Whatsapp::IncomingMessageBaileysService do
 
         expect do
           described_class.new(inbox: inbox, params: params).perform
-        end.to raise_error(Whatsapp::IncomingMessageBaileysService::InvalidWebhookVerifyToken)
+        end.to(raise_error { |error| expect(error.class.name).to eq('Whatsapp::IncomingMessageBaileysService::InvalidWebhookVerifyToken') })
       end
     end
 
@@ -199,42 +199,22 @@ describe Whatsapp::IncomingMessageBaileysService do
       end
 
       context 'when updating contact avatar' do
-        it 'enqueues avatar job when profile picture is available' do
-          stub_profile_pic_fetch('https://example.com/avatar.jpg')
-
+        it 'enqueues the contact avatar update job for new contacts' do
           described_class.new(inbox: inbox, params: params).perform
 
           conversation = inbox.conversations.last
           contact = conversation.contact
 
-          expect(Avatar::AvatarFromUrlJob).to have_been_enqueued.with(contact, 'https://example.com/avatar.jpg')
+          expect(Channels::Whatsapp::BaileysUpdateContactAvatarJob).to have_been_enqueued.with(contact, inbox, '5511912345678')
         end
 
-        it 'does not enqueue avatar job when contact already has avatar attached' do
-          stub_profile_pic_fetch('https://example.com/avatar.jpg')
+        it 'does not enqueue the contact avatar update job when contact already has avatar attached' do
           contact = create(:contact, account: inbox.account, name: 'John Doe', phone_number: '+5511912345678')
           contact.avatar.attach(io: Rails.root.join('spec/assets/avatar.png').open, filename: 'avatar.png', content_type: 'image/png')
 
           described_class.new(inbox: inbox, params: params).perform
 
-          expect(Avatar::AvatarFromUrlJob).not_to have_been_enqueued
-        end
-
-        it 'does not enqueue avatar job when profile picture is not available' do
-          described_class.new(inbox: inbox, params: params).perform
-
-          expect(Avatar::AvatarFromUrlJob).not_to have_been_enqueued
-        end
-
-        it 'logs error and does not enqueue avatar job when profile picture request fails' do
-          allow(Rails.logger).to receive(:error)
-          stub_request(:get, /profile-picture-url/)
-            .to_raise(StandardError.new('Profile picture request failed'))
-
-          described_class.new(inbox: inbox, params: params).perform
-
-          expect(Avatar::AvatarFromUrlJob).not_to have_been_enqueued
-          expect(Rails.logger).to have_received(:error).with('Failed to fetch profile picture for 5511912345678: Profile picture request failed')
+          expect(Channels::Whatsapp::BaileysUpdateContactAvatarJob).not_to have_been_enqueued
         end
       end
 
@@ -288,6 +268,37 @@ describe Whatsapp::IncomingMessageBaileysService do
       context 'when message is edited message' do
         it 'does not create contact inbox nor message' do
           raw_message[:message] = { editedMessage: { message: { protocolMessage: { editedMessage: { documentMessage: 1 } } } } }
+
+          described_class.new(inbox: inbox, params: params).perform
+
+          expect(inbox.messages).to be_empty
+          expect(inbox.contact_inboxes).to be_empty
+        end
+      end
+
+      context 'when message is a revoke (contact deleted for everyone)' do
+        let(:original_message) do
+          contact = create(:contact, account: inbox.account, phone_number: '+5511912345678')
+          contact_inbox = create(:contact_inbox, contact: contact, inbox: inbox, source_id: '5511912345678')
+          conversation = create(:conversation, contact: contact, inbox: inbox, contact_inbox: contact_inbox)
+          create(:message, conversation: conversation, source_id: 'original_msg_id', content: 'secret message')
+        end
+
+        it 'flags the original message as deleted by the contact and keeps the content' do
+          original_message
+          raw_message[:message] = { protocolMessage: { key: { id: 'original_msg_id' }, type: 'REVOKE' } }
+
+          expect do
+            described_class.new(inbox: inbox, params: params).perform
+          end.not_to(change { inbox.messages.count })
+
+          original_message.reload
+          expect(original_message.content).to eq('secret message')
+          expect(original_message.content_attributes['deleted_by_contact']).to be(true)
+        end
+
+        it 'does nothing when the revoked message is unknown' do
+          raw_message[:message] = { protocolMessage: { key: { id: 'unknown_id' }, type: 'REVOKE' } }
 
           described_class.new(inbox: inbox, params: params).perform
 
@@ -451,22 +462,85 @@ describe Whatsapp::IncomingMessageBaileysService do
             expect(messages).to eq([message])
           end
 
+          it 'does not create duplicate message when source_id is set after contact lock is acquired' do
+            # This tests the race condition fix:
+            # 1. Agent sends message from Chatwoot (message created without source_id)
+            # 2. Webhook arrives before source_id is saved
+            # 3. Webhook handler times out on channel lock and proceeds
+            # 4. Inside contact lock, we re-check for message by source_id
+            # 5. By then, source_id should be set, so duplicate is prevented
+
+            # Create contact and conversation that will be found
+            contact = create(:contact, account: inbox.account, identifier: '12345678@lid', phone_number: '+5511912345678')
+            contact_inbox = create(:contact_inbox, inbox: inbox, contact: contact, source_id: '12345678')
+            conversation = create(:conversation, inbox: inbox, contact_inbox: contact_inbox, contact: contact)
+
+            # Simulate the race: message exists but will only be found on the re-check inside contact lock
+            existing_message = create(:message, inbox: inbox, conversation: conversation)
+
+            # First call returns nil (simulating message not having source_id yet)
+            # Second call (inside contact lock) returns the message
+            service = described_class.new(inbox: inbox, params: params)
+            call_count = 0
+            allow(service).to receive(:find_message_by_source_id).and_wrap_original do |_method, _source_id|
+              call_count += 1
+              call_count == 1 ? nil : existing_message
+            end
+
+            service.perform
+
+            # Should not create a new conversation or message
+            expect(inbox.conversations.count).to eq(1)
+            expect(inbox.messages.count).to eq(1)
+          end
+
           it 'does not create a message if it is already being processed' do
-            allow(Redis::Alfred).to receive(:get).with(format_message_source_key('msg_123')).and_return(true)
+            # Simulate lock already acquired by returning false from SETNX
+            allow(Redis::Alfred).to receive(:set)
+              .with(format_message_source_key('msg_123'), true, nx: true, ex: 1.day)
+              .and_return(false)
 
             described_class.new(inbox: inbox, params: params).perform
 
             expect(inbox.conversations).to be_empty
           end
 
-          it 'caches the message source id in Redis and clears it' do
-            allow(Redis::Alfred).to receive(:setex).with(format_message_source_key('msg_123'), true)
+          it 'caches and clears message source id in Redis' do
+            # Allow all Redis::Alfred calls (contact lock uses different keys)
+            allow(Redis::Alfred).to receive(:set).and_call_original
+            allow(Redis::Alfred).to receive(:delete).and_call_original
+
+            # Stub message lock specifically
+            allow(Redis::Alfred).to receive(:set)
+              .with(format_message_source_key('msg_123'), true, nx: true, ex: 1.day)
+              .and_return(true)
             allow(Redis::Alfred).to receive(:delete).with(format_message_source_key('msg_123'))
 
             described_class.new(inbox: inbox, params: params).perform
 
-            expect(Redis::Alfred).to have_received(:setex)
-            expect(Redis::Alfred).to have_received(:delete)
+            expect(Redis::Alfred).to have_received(:set).with(format_message_source_key('msg_123'), true, nx: true, ex: 1.day)
+            expect(Redis::Alfred).to have_received(:delete).with(format_message_source_key('msg_123'))
+          end
+
+          it 'clears lock even when an exception occurs after acquiring it' do
+            # Bug: no ensure block meant exceptions left lock stuck forever
+            # Fix: use ensure block to always clear lock when acquired
+            # Allow all Redis::Alfred calls (contact lock uses different keys)
+            allow(Redis::Alfred).to receive(:set).and_call_original
+            allow(Redis::Alfred).to receive(:delete).and_call_original
+
+            # Stub message lock specifically
+            allow(Redis::Alfred).to receive(:set)
+              .with(format_message_source_key('msg_123'), true, nx: true, ex: 1.day)
+              .and_return(true)
+            allow(Redis::Alfred).to receive(:delete).with(format_message_source_key('msg_123'))
+
+            service = described_class.new(inbox: inbox, params: params)
+            allow(service).to receive(:handle_create_message).and_raise(StandardError, 'simulated error')
+
+            expect { service.perform }.to raise_error(StandardError, 'simulated error')
+
+            expect(Redis::Alfred).to have_received(:delete).with(format_message_source_key('msg_123'))
           end
         end
 
@@ -512,6 +586,26 @@ describe Whatsapp::IncomingMessageBaileysService do
           expect(reaction.in_reply_to_external_id).to eq(message.source_id)
         end
 
+        it 'anchors the reaction to the target message conversation when it is resolved instead of opening a new one' do
+          message.conversation.update!(status: :resolved)
+          raw_message[:key][:id] = 'reaction_123'
+          raw_message[:message] = {
+            reactionMessage: {
+              key: { remoteJid: '12345678@lid', fromMe: true, id: 'msg_123' },
+              text: '👍'
+            }
+          }
+
+          expect do
+            described_class.new(inbox: inbox, params: params).perform
+          end.not_to change(Conversation, :count)
+
+          reaction = message.conversation.reload.messages.last
+          expect(reaction.is_reaction).to be(true)
+          expect(reaction.conversation_id).to eq(message.conversation.id)
+          expect(reaction.in_reply_to_external_id).to eq(message.source_id)
+        end
+
         it 'does not create the reaction if content is empty' do
           raw_message[:key][:id] = 'reaction_123'
           raw_message[:message] = {
@@ -524,6 +618,79 @@ describe Whatsapp::IncomingMessageBaileysService do
           described_class.new(inbox: inbox, params: params).perform
 
           expect(message.conversation.messages.count).to eq(1)
+        end
+
+        it 'marks an existing incoming reaction as removed when webhook arrives with empty text' do
+          existing_reaction = create(:message,
+                                     conversation: message.conversation,
+                                     sender: message.conversation.contact_inbox.contact,
+                                     message_type: :incoming,
+                                     content: '👍',
+                                     content_attributes: { is_reaction: true, in_reply_to_external_id: message.source_id })
+          raw_message[:key][:id] = 'reaction_removal_456'
+          raw_message[:message] = {
+            reactionMessage: {
+              key: { remoteJid: '12345678@lid', fromMe: true, id: 'msg_123' },
+              text: ''
+            }
+          }
+
+          expect do
+            described_class.new(inbox: inbox, params: params).perform
+          end.not_to(change { message.conversation.messages.count })
+
+          existing_reaction.reload
+          expect(existing_reaction.content).to eq('')
+          expect(existing_reaction.content_attributes['deleted']).to be true
+        end
+
+        it 'dispatches conversation.updated after marking a reaction as removed' do
+          create(:message,
+                 conversation: message.conversation,
+                 sender: message.conversation.contact_inbox.contact,
+                 message_type: :incoming,
+                 content: '👍',
+                 content_attributes: { is_reaction: true, in_reply_to_external_id: message.source_id })
+          dispatched = []
+          allow_any_instance_of(Conversation).to receive(:dispatch_conversation_updated_event) do |conv| # rubocop:disable RSpec/AnyInstance
+            dispatched << conv.id
+          end
+          raw_message[:key][:id] = 'reaction_removal_789'
+          raw_message[:message] = {
+            reactionMessage: {
+              key: { remoteJid: '12345678@lid', fromMe: true, id: 'msg_123' },
+              text: ''
+            }
+          }
+
+          described_class.new(inbox: inbox, params: params).perform
+
+          expect(dispatched).to include(message.conversation.id)
+        end
+
+        it 'skips reaction removal for outgoing echoes so the local controller update is not clobbered' do
+          # Mirror the post-controller state: the Chatwoot reactions controller
+          # already toggled the senderless outgoing row to deleted, so the
+          # echoed fromMe webhook should hit the active-only filter and no-op.
+          existing_reaction = create(:message,
+                                     conversation: message.conversation,
+                                     sender: nil,
+                                     message_type: :outgoing,
+                                     content: '',
+                                     content_attributes: { is_reaction: true, in_reply_to_external_id: message.source_id, deleted: true })
+          raw_message[:key][:id] = 'outgoing_echo_removal'
+          raw_message[:key][:fromMe] = true
+          raw_message[:message] = {
+            reactionMessage: {
+              key: { remoteJid: '12345678@lid', fromMe: true, id: 'msg_123' },
+              text: ''
+            }
+          }
+          described_class.new(inbox: inbox, params: params).perform
+
+          existing_reaction.reload
+          expect(existing_reaction.content).to eq('')
+          expect(existing_reaction.content_attributes['deleted']).to be(true)
         end
       end
 
@@ -831,6 +998,25 @@ describe Whatsapp::IncomingMessageBaileysService do
           expect(contact.phone_number).to eq('+5511912345678')
         end
 
+        it 'reuses a contact saved with the Brazilian ninth digit when the reply arrives without it' do
+          # Regression: the agent saved the number with the ninth digit and outbound
+          # normalization was skipped; the reply delivers the canonical number without
+          # it and must not spawn a duplicate contact in a new conversation.
+          raw_message[:key][:remoteJidAlt] = '551112345678@s.whatsapp.net'
+          contact = create(:contact, account: inbox.account, phone_number: '+5511912345678', identifier: nil)
+          contact_inbox = create(:contact_inbox, inbox: inbox, contact: contact, source_id: '5511912345678')
+          conversation = create(:conversation, inbox: inbox, contact: contact, contact_inbox: contact_inbox)
+
+          expect do
+            described_class.new(inbox: inbox, params: params).perform
+          end.not_to change(Contact, :count)
+
+          expect(contact_inbox.reload.source_id).to eq('12345678')
+          expect(contact.reload.identifier).to eq('12345678@lid')
+          expect(contact.phone_number).to eq('+551112345678')
+          expect(conversation.reload.messages.last.content).to eq('Hello from Baileys')
+        end
+
         it 'does not update contact_inbox if source_id is already LID' do
           contact = create(:contact, account: inbox.account, phone_number: '+5511912345678', identifier: '12345678@lid')
           contact_inbox = create(:contact_inbox, inbox: inbox, contact: contact, source_id: '12345678')
@@ -854,6 +1040,26 @@ describe Whatsapp::IncomingMessageBaileysService do
 
         it 'updates contact name if it matches phone number' do
           contact = create(:contact, account: inbox.account, name: '5511912345678', phone_number: '+5511912345678', identifier: '12345678@lid')
+          create(:contact_inbox, inbox: inbox, contact: contact, source_id: '12345678')
+
+          described_class.new(inbox: inbox, params: params).perform
+
+          expect(contact.reload.name).to eq('John Doe')
+        end
+
+        it 'updates contact name when stored name is a phone variant missing the Brazilian 9' do
+          # The contact was registered without the "9"; phone normalization later aligned
+          # phone_number to the canonical number, but the name kept the stale digits.
+          contact = create(:contact, account: inbox.account, name: '551112345678', phone_number: '+5511912345678', identifier: '12345678@lid')
+          create(:contact_inbox, inbox: inbox, contact: contact, source_id: '12345678')
+
+          described_class.new(inbox: inbox, params: params).perform
+
+          expect(contact.reload.name).to eq('John Doe')
+        end
+
+        it 'updates contact name when stored name is a phone number with a leading +' do
+          contact = create(:contact, account: inbox.account, name: '+5511912345678', phone_number: '+5511912345678', identifier: '12345678@lid')
           create(:contact_inbox, inbox: inbox, contact: contact, source_id: '12345678')
 
           described_class.new(inbox: inbox, params: params).perform
@@ -887,6 +1093,15 @@ describe Whatsapp::IncomingMessageBaileysService do
 
           expect(contact.reload.name).to eq('Existing Name')
         end
+
+        it 'does not overwrite a digit-only name that is not this contact phone or LID' do
+          contact = create(:contact, account: inbox.account, name: '99887766', phone_number: '+5511912345678', identifier: '12345678@lid')
+          create(:contact_inbox, inbox: inbox, contact: contact, source_id: '12345678')
+
+          described_class.new(inbox: inbox, params: params).perform
+
+          expect(contact.reload.name).to eq('99887766')
+        end
       end
     end
 
@@ -913,7 +1128,7 @@ describe Whatsapp::IncomingMessageBaileysService do
 
           expect do
             described_class.new(inbox: inbox, params: params).perform
-          end.to raise_error(Whatsapp::IncomingMessageBaileysService::MessageNotFoundError)
+          end.to(raise_error { |error| expect(error.class.name).to eq('Whatsapp::BaileysHandlers::MessagesUpdate::MessageNotFoundError') })
         end
       end
 
@@ -968,6 +1183,35 @@ describe Whatsapp::IncomingMessageBaileysService do
 
           expect(Rails.logger).to have_received(:warn)
         end
+
+        it 'marks the message as failed and stores the stub description with code' do
+          update_payload[:update][:status] = 0
+          update_payload[:update][:messageStubParameters] = ['463', 'Your account has been restricted']
+
+          described_class.new(inbox: inbox, params: params).perform
+
+          expect(message.reload.status).to eq('failed')
+          expect(message.external_error).to eq('Your account has been restricted (463)')
+        end
+
+        it 'falls back to a generic message when only the error code is present on failure' do
+          update_payload[:update][:status] = 0
+          update_payload[:update][:messageStubParameters] = ['429']
+
+          described_class.new(inbox: inbox, params: params).perform
+
+          expect(message.reload.status).to eq('failed')
+          expect(message.external_error).to eq('WhatsApp error 429')
+        end
+
+        it 'leaves external_error blank on failure when stub parameters are absent' do
+          update_payload[:update][:status] = 0
+
+          described_class.new(inbox: inbox, params: params).perform
+
+          expect(message.reload.status).to eq('failed')
+          expect(message.external_error).to be_blank
+        end
       end
 
       context 'when is a content update' do
@@ -981,6 +1225,67 @@ describe Whatsapp::IncomingMessageBaileysService do
           expect(message.is_edited).to be(true)
           expect(message.previous_content).to eq(original_content)
         end
+      end
+    end
+
+    context 'when processing message-receipt.update event' do
+      let(:conversation) do
+        agent = create(:user, account: inbox.account, role: :agent)
+        contact = create(:contact, account: inbox.account)
+        contact_inbox = create(:contact_inbox, inbox: inbox, contact: contact)
+        create(:conversation, inbox: inbox, contact_inbox: contact_inbox, assignee_id: agent.id)
+      end
+      let!(:message) { create(:message, inbox: inbox, conversation: conversation, source_id: '123ABCDE1234567', status: 'sent') }
+      let(:receipt_payload) do
+        {
+          key: { remoteJid: '123456789123456789@g.us', id: '123ABCDE1234567', fromMe: true,
+                 participant: '12345678@lid' },
+          receipt: receipt_data
+        }
+      end
+      let(:receipt_data) { { userJid: '12345678@lid', receiptTimestamp: 1_772_056_268 } }
+      let(:params) do
+        {
+          webhookVerifyToken: webhook_verify_token,
+          event: 'message-receipt.update',
+          data: [receipt_payload]
+        }
+      end
+
+      it 'updates message from sent to delivered on receiptTimestamp' do
+        described_class.new(inbox: inbox, params: params).perform
+
+        expect(message.reload.status).to eq('delivered')
+      end
+
+      it 'ignores readTimestamp and does not update status' do
+        receipt_data.replace(userJid: '12345678@lid', readTimestamp: 1_772_056_497)
+
+        described_class.new(inbox: inbox, params: params).perform
+
+        expect(message.reload.status).to eq('sent')
+      end
+
+      it 'does not downgrade a delivered message on receiptTimestamp' do
+        message.update!(status: 'delivered')
+
+        described_class.new(inbox: inbox, params: params).perform
+
+        expect(message.reload.status).to eq('delivered')
+      end
+
+      it 'does not downgrade a read message on receiptTimestamp' do
+        message.update!(status: 'read')
+
+        described_class.new(inbox: inbox, params: params).perform
+
+        expect(message.reload.status).to eq('read')
+      end
+
+      it 'does not raise error when message is not found' do
+        receipt_payload[:key][:id] = 'NONEXISTENT_MSG_ID'
+
+        expect { described_class.new(inbox: inbox, params: params).perform }.not_to raise_error
       end
     end
   end
