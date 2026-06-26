@@ -804,12 +804,12 @@ const menuItems = computed(() => {
         <template v-else>
           <div class="flex-shrink-0 flex items-center">
             <img
-              src="/images/logo-ddm.png"
+              src="/logo-ddm.png"
               alt="Grupo DDM"
               class="h-5 w-auto dark:hidden"
             />
             <img
-              src="/images/logo-ddm-white.png"
+              src="/logo-ddm-white.png"
               alt="Grupo DDM"
               class="h-5 w-auto hidden dark:block"
             />
